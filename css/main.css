@@ -115,3 +115,7 @@ form {
   grid-auto-flow: row;
 }
 
+.error {
+  color: #FF0000;
+}
+

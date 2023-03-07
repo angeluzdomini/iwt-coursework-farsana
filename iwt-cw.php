@@ -74,7 +74,7 @@ function getSearchResult($data_json, $search_year, $year_condition, $search_tour
 
 function checkYear($item_year, $search_year, $year_condition): bool|string
 {
-  if (!is_numeric($item_year)) {
+  if (!is_numeric($search_year)) {
     return "Error! Year should be only numbers.";
   }
   if ($year_condition != null && $search_year == null) {
@@ -103,8 +103,8 @@ function checkTournament($tournament, $search_tournament): bool|string
     case 'Australian Open':
     case 'U.S. Open':
     case 'French Open':
-    case 'Wimbeldon':
-      break;
+    case 'Wimbledon':
+      return $search_tournament == $tournament;
     default:
       return 'Error! Invalid tournament name.';
   }

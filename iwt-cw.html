@@ -48,7 +48,7 @@
           <option value="Australian Open">Australian Open</option>
           <option value="French Open">French Open</option>
           <option value="U.S. Open">U.S. Open</option>
-          <option value="Wimbledon">Wimdeldon</option>
+          <option value="Wimbledon">Wimbledon</option>
         </select><br>
         <label for="file">Men's/Women's:</label>
         <select id="file" name="file">
@@ -60,16 +60,22 @@
         <input id="clear-input" type="reset" value="Clear Form">
       </form>
       <button id="clear-output" onclick="clearResult('output')">Clear Result</button>
-      <div id="output">
+      <div id="output" class="hidden">
         <p><b>SEARCH RESULTS</b>
-        <table id="result-table">
+        <table id="result-table" class="hidden">
+          <thead>
           <tr>
             <th><b>Year</b></th>
             <th><b>Grand Slam</b></th>
             <th><b>Winner</b></th>
             <th><b>Runner-up</b></th>
           </tr>
-        </table>
+          </thead>
+          <tbody>
+          </tbody>
+       </table>
+        <div id="error-message" class="error hidden">
+        </div>
       </div>
     </div>
 
