@@ -1,21 +1,33 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
+//fetch the query parameters
 $year = $_GET["year"];
-$year_op = $_GET["year-op"];
+$year_op = $_GET["yearOp"];
 $tournament = $_GET["tournament"];
 $file = $_GET["file"];
 $winner = $_GET["winner"];
-$runner_up = $_GET["runnerup"];
+$runner_up = $_GET["runnerUp"];
+
+//call search funtion with the query params and return results/error json
 $results = search($year, $year_op, $tournament, $winner, $runner_up, $file);
 echo $results;
 
+/*
+ * function to search for results based on year, year_op, tournament, winner, runner_up and file params
+ * Return JSON
+ */
 function search($year, $year_op, $tournament, $winner, $runner_up, $file)
 {
+  //get contents of both json files and decode them.
   $mens_json = file_get_contents('resources/mens-grand-slam-winners.json');
   $womens_json = file_get_contents('resources/womens-grand-slam-winners.json');
   $decoded_mens_json = json_decode($mens_json, true);
   $decoded_womens_json = json_decode($womens_json, true);
+
+  //check if file param matches any of the file names or 'any' to use them both.
+  //call getSearchResult() with the json, year, year_op, tournament, winner and runner_up params and return the result
+  // If not throw error for invalid file name.
   switch ($file) {
     case 'mens-grand-slam-winners.json':
       $results = getSearchResult($decoded_mens_json, $year, $year_op, $tournament, $winner, $runner_up);
@@ -25,6 +37,10 @@ function search($year, $year_op, $tournament, $winner, $runner_up, $file)
       return json_encode($results);
     case 'any':
       $decoded_mixed_json = array_merge($decoded_mens_json, $decoded_womens_json);
+      //Sort the mixed json array  in descending order using year
+      usort($decoded_mixed_json, function($a, $b) {
+        return $a['year'] > $b['year'] ? -1 : 1;
+      });
       $results = getSearchResult($decoded_mixed_json, $year, $year_op, $tournament, $winner, $runner_up);
       return json_encode($results);
     default:
@@ -34,53 +50,79 @@ function search($year, $year_op, $tournament, $winner, $runner_up, $file)
   }
 }
 
+/*
+ * function to validate and search using year, year condition, tournament, winner and runnerup
+ * Return results array or error object.
+ */
 function getSearchResult($data_json, $search_year, $year_condition, $search_tournament, $search_winner, $search_runnerup)
 {
+  //Initialise results and error object for returning.
   $results = array();
   $error_message = new stdClass();
+
+  //loop through the json data to match the params using corresponding functions for each param.
+  //create error object and return when the first error is encountered.
   foreach ($data_json as $item) {
     $year = $item['year'];
     $tournament = $item['tournament'];
     $winner = $item['winner'];
     $runnerup = $item['runner-up'];
+    //calls function to validate and compare year param.
     $check_year = checkYear($year, $search_year, $year_condition);
     if ($check_year === true) {
+      //calls function to validate and compare tournament param.
       $check_tournament = checkTournament($tournament, $search_tournament);
       if ($check_tournament === true) {
+        //calls function to validate and compare winner param.
         $check_winner = checkWinner($winner, $search_winner);
         if ($check_winner === true) {
+          //calls function to validate and compare runnerup param.
           $check_runner_up = checkRunnerup($runnerup, $search_runnerup);
           if ($check_runner_up === true) {
+            //item matched, hence adding into results array
             $results[] = $item;
           } elseif ($check_runner_up !== false) {
+            //error exists in runner up check, create error object and return
             $error_message->error = $check_runner_up;
             return $error_message;
           }
         } elseif ($check_winner !== false) {
+          //error exists in winner check, create error object and return
           $error_message->error = $check_winner;
           return $error_message;
         }
       } elseif ($check_tournament !== false) {
+        //error exists in tournament check, create error object and return
         $error_message->error = $check_tournament;
         return $error_message;
       }
     } elseif ($check_year !== false) {
+      //error exists in year check, create error object and return
       $error_message->error = $check_year;
       return $error_message;
     }
   }
+  //returns the results array - can be of length >= 0
   return $results;
 }
 
+/*
+ * function to validate and compare year from json data with query param year and yearOp
+ * Return true if years match condition or is null
+ * Return false if years do not match condition
+ * Return string with error message in case validations for
+ * - non numeric year value,
+ * - empty condition with non-empty year,
+ */
 function checkYear($item_year, $search_year, $year_condition): bool|string
 {
+  if ($search_year == null) {
+    return true;
+  }
   if (!is_numeric($search_year)) {
     return "Error! Year should be only numbers.";
   }
-  if ($year_condition != null && $search_year == null) {
-    return "Error! Search year cannot be empty with a condition.";
-  }
-  if ($search_year == null && $year_condition != null) {
+  if ($search_year != null && $year_condition == null) {
     return "Error! Search condition cannot be empty with a year.";
   }
   switch ($year_condition) {
@@ -95,6 +137,12 @@ function checkYear($item_year, $search_year, $year_condition): bool|string
   }
 }
 
+/*
+ * function to validate and compare tournament from json data with query param tournament
+ * Return true if tournament param is any or matches the list tournaments listed and the data tournament value.
+ * return false if query param value does not match data tournament value.
+ * Return string with error message if the value is not any or defined tournament names.
+ */
 function checkTournament($tournament, $search_tournament): bool|string
 {
   switch ($search_tournament) {
@@ -111,6 +159,12 @@ function checkTournament($tournament, $search_tournament): bool|string
   return false;
 }
 
+/*
+ * function to validate and compare winner from json data with query param winner
+ * Return true if json data winner contains query param or query param is empty.
+ * Return false if json data winner does not contain query param
+ * Return string with error message if name contains numeric values.
+ */
 function checkWinner($winner, $search_winner): bool|string
 {
   if ($search_winner == "") {
@@ -125,6 +179,12 @@ function checkWinner($winner, $search_winner): bool|string
   return false;
 }
 
+/*
+ * function to validate and compare runnerup from json data with query param runnerup
+ * Return true if json data runnerup contains query param or query param is empty.
+ * Return false if json data runner does not contain query param
+ * Return string with error message if name contains numeric values.
+ */
 function checkRunnerup($runnerup, $search_runnerup): bool|string
 {
   if ($search_runnerup == "") {
